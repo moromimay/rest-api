@@ -1,33 +1,36 @@
 package app
 
 import (
-	"net/http"
-	u "github.com/moromimay/rest-api/utils"
-	"strings"
-	"github.com/moromimay/rest-api/models"
-	jwt "github.com/dgrijalva/jwt-go"
-	"os"
 	"context"
 	"fmt"
+	"net/http"
+	"os"
+	"rest-api/models"
+	u "rest-api/utils"
+	"strings"
+
+	jwt "github.com/dgrijalva/jwt-go"
 )
+
+type Token struct {
+	UserId uint
+	jwt.StandardClaims
+}
 
 var JwtAuthentication = func(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		notAuth := []string{"/api/user/new", "/api/user/login"} //List of endpoints that doesn't require auth
-		requestPath := r.URL.Path //current request path
+		account := &models.Account{}
 
-		//check if request does not need authentication, serve the request if it doesn't need it
-		for _, value := range notAuth {
+		tk := &Token{UserId: account.ID}
+		token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
+		tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
 
-			if value == requestPath {
-				next.ServeHTTP(w, r)
-				return
-			}
-		}
+		var bearer = "Bearer " + tokenString
+		r.Header.Add("Authorization", bearer)
 
-		response := make(map[string] interface{})
+		response := make(map[string]interface{})
 		tokenHeader := r.Header.Get("Authorization") //Grab the token from the header
 
 		if tokenHeader == "" { //Token is missing, returns with error code 403 Unauthorized
@@ -48,7 +51,6 @@ var JwtAuthentication = func(next http.Handler) http.Handler {
 		}
 
 		tokenPart := splitted[1] //Grab the token part, what we are truly interested in
-		tk := &models.Token{}
 
 		token, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
 			return []byte(os.Getenv("token_password")), nil
@@ -75,5 +77,5 @@ var JwtAuthentication = func(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), "user", tk.UserId)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r) //proceed in the middleware chain!
-	});
+	})
 }

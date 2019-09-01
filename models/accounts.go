@@ -1,37 +1,42 @@
 package models
 
 import (
-	"os"
 	"strings"
+	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	u "rest-api/utils"
+
 	"github.com/jinzhu/gorm"
-	u "github.com/moromimay/rest-api/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type Token struct {
-	UserId uint
-	jwt.StandardClaims
-}
-
 type Account struct {
 	gorm.Model
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Token    string `json:"token";sql:"-"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Password  string    `json:"password"`
+	BirthDate time.Time `json:"birthday"`
+	Token     string    `json:"-"`
 }
 
 //Validate incoming user details...
 func (account *Account) Validate() (map[string]interface{}, bool) {
+
+	if account.Name == "" {
+		return u.Message(false, "User name should be on the payload"), false
+	}
 
 	if !strings.Contains(account.Email, "@") {
 		return u.Message(false, "Email address is required"), false
 	}
 
 	if len(account.Password) < 6 {
-		return u.Message(false, "Password is required"), false
+		return u.Message(false, "Password has to have at 6 digits"), false
 	}
+
+	// if !account.BirthDate.Format("02-01-2006") {
+	// 	return u.Message(false, "Birth date is required"), false
+	// }
 
 	//Email must be unique
 	temp := &Account{}
@@ -42,7 +47,7 @@ func (account *Account) Validate() (map[string]interface{}, bool) {
 		return u.Message(false, "Connection error. Please retry"), false
 	}
 	if temp.Email != "" {
-		return u.Message(false, "Email address already in use by another user."), false
+		return u.Message(false, "Email address already in suse by another user."), false
 	}
 
 	return u.Message(false, "Requirement passed"), true
@@ -54,6 +59,8 @@ func (account *Account) Create() map[string]interface{} {
 		return resp
 	}
 
+	account.BirthDate.Format("2006-01-02")
+
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(account.Password), bcrypt.DefaultCost)
 	account.Password = string(hashedPassword)
 
@@ -62,12 +69,6 @@ func (account *Account) Create() map[string]interface{} {
 	if account.ID <= 0 {
 		return u.Message(false, "Failed to create account, connection error.")
 	}
-
-	//Create new JWT token for the newly registered account
-	tk := &Token{UserId: account.ID}
-	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
-	tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
-	account.Token = tokenString
 
 	account.Password = "" //delete password
 
@@ -94,25 +95,7 @@ func Login(email, password string) map[string]interface{} {
 	//Worked! Logged In
 	account.Password = ""
 
-	//Create JWT token
-	tk := &Token{UserId: account.ID}
-	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
-	tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
-	account.Token = tokenString //Store the token in the response
-
 	resp := u.Message(true, "Logged In")
 	resp["account"] = account
 	return resp
-}
-
-func GetUserAccount(u uint) *Account {
-
-	acc := &Account{}
-	GetDB().Table("accounts").Where("id = ?", u).First(acc)
-	if acc.Email == "" { //User not found!
-		return nil
-	}
-
-	acc.Password = ""
-	return acc
 }

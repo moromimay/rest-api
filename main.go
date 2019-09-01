@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"os"
 
+	"rest-api/app"
+	"rest-api/controllers"
+
 	"github.com/gorilla/mux"
-	"github.com/moromimay/rest-api/app"
-	"github.com/moromimay/rest-api/controllers"
 )
 
 func main() {
@@ -16,8 +17,9 @@ func main() {
 
 	router.HandleFunc("/api/user/new", controllers.CreateAccount).Methods("POST")
 	router.HandleFunc("/api/user/login", controllers.Authenticate).Methods("POST")
-	router.HandleFunc("/api/contacts/new", controllers.CreateContact).Methods("POST")
-	router.HandleFunc("/api/me/contacts", controllers.GetContactsFor).Methods("GET") //  user/2/contacts
+	router.HandleFunc("/api/user/operation/{id}", controllers.Transaction).Methods("POST")
+	router.HandleFunc("/api/operation/user/{id}", controllers.GetUser).Methods("GET")
+	router.HandleFunc("/api/operation/date/{operation_date}", controllers.GetDate).Methods("GET")
 
 	router.Use(app.JwtAuthentication) //attach JWT auth middleware
 

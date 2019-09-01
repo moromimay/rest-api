@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"net/http"
-	u "github.com/moromimay/rest-api/utils"
-	"github.com/moromimay/rest-api/models"
 	"encoding/json"
+	"net/http"
+	"rest-api/models"
+	u "rest-api/utils"
 )
 
 var CreateAccount = func(w http.ResponseWriter, r *http.Request) {

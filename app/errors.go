@@ -2,7 +2,7 @@ package app
 
 import (
 	"net/http"
-	u "github.com/moromimay/rest-api/utils"
+	u "rest-api/utils"
 )
 
 var NotFoundHandler = func(next http.Handler) http.Handler {
