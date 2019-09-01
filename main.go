@@ -21,9 +21,7 @@ func main() {
 	router.HandleFunc("/api/operation/user/{id}", controllers.GetUser).Methods("GET")
 	router.HandleFunc("/api/operation/date/{operation_date}", controllers.GetDate).Methods("GET")
 
-	router.Use(app.JwtAuthentication) //attach JWT auth middleware
-
-	//router.NotFoundHandler = app.NotFoundHandler
+	router.Use(app.JwtAuthentication)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -32,7 +30,7 @@ func main() {
 
 	fmt.Println(port)
 
-	err := http.ListenAndServe(":"+port, router) //Launch the app, visit localhost:8000/api
+	err := http.ListenAndServe(":"+port, router) //localhost:8000/api
 	if err != nil {
 		fmt.Print(err)
 	}

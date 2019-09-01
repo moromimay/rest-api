@@ -22,6 +22,7 @@ type Transaction struct {
 	NumberCoin       int     `json:"quantity_coin"`
 	DateTransaction  string  `json:"operation_date"`
 	ValueTransaction float64 `json:"price"`
+	Wallet           int     `json:"wallet"`
 }
 
 type CoinMarketCap struct {
@@ -47,10 +48,6 @@ type CoinMarketCap struct {
 	} `json:"data"`
 }
 
-/*
- This struct function validate the required parameters sent through the http request body
-returns message and true if the requirement is met
-*/
 func (operation *Transaction) Validate() (map[string]interface{}, bool) {
 
 	if operation.UserID <= 0 {
@@ -67,7 +64,18 @@ func (operation *Transaction) Validate() (map[string]interface{}, bool) {
 		return u.Message(false, "Choose the quantity of coins"), false
 	}
 
-	//All the required parameters are present
+	temp := &Transaction{}
+
+	if operation.Operation == "sell" {
+		err := GetDB().Table("transactions").Where("user_id = ?", operation.UserID).Last(temp).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return u.Message(false, "Connection error. Please retry"), false
+		}
+		if temp.Wallet == 0 || temp.Wallet < operation.NumberCoin {
+			return u.Message(false, "You don't have coin to sell"), false
+		}
+	}
+
 	return u.Message(false, "Requirement passed"), true
 }
 
@@ -116,6 +124,18 @@ func (operation *Transaction) Create() map[string]interface{} {
 	date := fmt.Sprintf(datetime.Format("2006-01-02"))
 	operation.DateTransaction = date
 
+	var t Transaction
+	err = GetDB().Table("transactions").Where("user_id = ?", operation.UserID).Last(&t).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return u.Message(false, "Connection error. Please retry")
+	}
+
+	if operation.Operation == "buy" {
+		operation.Wallet = t.Wallet + operation.NumberCoin
+	} else {
+		operation.Wallet = t.Wallet - operation.NumberCoin
+	}
+
 	GetDB().Create(operation)
 
 	if operation.ID <= 0 {
@@ -140,10 +160,8 @@ func GetTransactionUser(id uint64) []*Transaction {
 
 func GetDateTransaction(operation_date string) []*Transaction {
 
-	//operationDate, _ := time.Parse("2006-01-02", operation_date)
-	//fmt.Print(operationDate)
 	date := make([]*Transaction, 0)
-	err := GetDB().Table("transactions").Where("operation_date = ?", operation_date).Find(date).Error
+	err := GetDB().Table("transactions").Where("date_transaction = ?", operation_date).Find(&date).Error
 	if err != nil {
 		fmt.Println(err)
 		return nil

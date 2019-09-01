@@ -1,0 +1,6 @@
+FROM mariadb:latest
+
+ENV MYSQL_ROOT_PASSWORD test
+ENV MYSQL_DATABASE redcoin
+
+EXPOSE 3306
