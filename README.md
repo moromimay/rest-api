@@ -14,8 +14,13 @@ A seguir veja as dependências deste projeto e o passo a passo de como configur�
 Faça o clone do projeto:  
 ```git clone https://github.com/moromimay/rest-api.git```
 
-Crie a imagem do banco de dados: (O arquivo Dockerfile do banco está na pasta /docker/mariadb/)  
-``` docker build -t maridb-docker . ```
-
 Execute o docker compose:  
 ``` docker-compose up -d```
+
+Informações adicionais:
+* Se o banco de dados não conectar, execute:
+``` docker-compose up --force-recreate -d```
+
+## API Documentação
+
+Acesse este [link](https://documenter.getpostman.com/view/7926794/SVfTNnSJ) para documentação da API via Postman.
